@@ -1,7 +1,7 @@
 .PHONY: all clean
 CC = gcc
-CFLAGS = -c -O3 -Wall `xml2-config --cflags`
-LDFLAGS = -lz `xml2-config --libs`
+CFLAGS = -I ../htslib/htslib -c -O3 -Wall `xml2-config --cflags`
+LDFLAGS = -lz `xml2-config --libs` -L../htslib -lhts
 BINDIR = ../bin/
 EXEC = blast2bam fastq2fasta
 OBJS = $(addsuffix .o, parseXML blastSam printSam shortRead utils main)

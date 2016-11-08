@@ -29,6 +29,7 @@ History:
 #include <string.h>
 #include "utils.h"
 #include "blastSam.h"
+#include "faidx.h"
 
 /************************************************************************************/
 /*  SAM header                                                                      */
@@ -89,20 +90,34 @@ static int sq_line(AppParamPtr app)
 {
     FILE* reader;
     char* name = NULL;
+    const char* fai_name;
     int len = 0;
+    int n = 0;
 
-    reader = safeFOpen(app->db, "r");                           // Open the reference file
+    faidx_t *fai = fai_load(app->db);
+    if(fai == NULL) {
+      fprintf(stderr, "Could not load fai index of %s\n", app->db);
+      reader = safeFOpen(app->db, "r");                           // Open the reference file
+      while (!feof(reader))
+      {
+          if ((name = refName(reader)) == NULL) return 1;         // Get the reference name
+          len = refLen(reader);                                   // Get the length of the reference sequence
 
-    while (!feof(reader))
-    {
-        if ((name = refName(reader)) == NULL) return 1;         // Get the reference name
-        len = refLen(reader);                                   // Get the length of the reference sequence
+          fprintf(app->out, "@SQ\tSN:%s\tLN:%d\n", name, len);    // Print the SQ line in the SAM file
+          free(name);
+      }
 
-        fprintf(app->out, "@SQ\tSN:%s\tLN:%d\n", name, len);    // Print the SQ line in the SAM file
-        free(name);
+      fclose(reader);
+    } else {
+      n = faidx_nseq(fai);
+      for(int i = 0; i < n; i++) {
+        fai_name = faidx_iseq(fai, i);
+        len = faidx_seq_len(fai, fai_name);
+        fprintf(app->out, "@SQ\tSN:%s\tLN:%d\n", fai_name, len);    // Print the SQ line in the SAM file
+      }
+      fai_destroy(fai);
     }
 
-    fclose(reader);
     return 0;
 }
 
